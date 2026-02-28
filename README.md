@@ -6,3 +6,4 @@ A LangChain AI Agent with FastAPI backend and React TypeScript frontend.
 - Backend: Python, FastAPI, LangChain
 - Frontend: React, TypeScript, Vite, Tailwind CSS, shadcn/ui
 - CI/CD: GitHub Actions → Render
+
