@@ -1,5 +1,6 @@
 import ast
 import operator
+import os
 from langchain_openai import ChatOpenAI
 from langchain.agents import AgentExecutor, create_openai_tools_agent
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
@@ -41,7 +42,13 @@ def calculator(expression: str) -> str:
 
 
 def create_agent() -> AgentExecutor:
-    llm = ChatOpenAI(model="gpt-4o-mini", temperature=0, streaming=True)
+    llm = ChatOpenAI(
+        model=os.environ.get("LLM_MODEL", "Pro/zai-org/GLM-5"),
+        temperature=0,
+        streaming=True,
+        base_url=os.environ.get("LLM_BASE_URL", "https://api.siliconflow.cn/v1"),
+        api_key=os.environ.get("LLM_API_KEY"),
+    )
     tools = [DuckDuckGoSearchRun(), calculator]
 
     prompt = ChatPromptTemplate.from_messages([
