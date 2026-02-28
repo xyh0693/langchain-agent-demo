@@ -4,7 +4,7 @@ import os
 from langchain_openai import ChatOpenAI
 from langchain.agents import AgentExecutor, create_openai_tools_agent
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
-from langchain_community.tools import DuckDuckGoSearchRun
+from langchain_community.tools.tavily_search import TavilySearchResults
 from langchain.tools import tool
 
 _OPERATORS = {
@@ -49,7 +49,7 @@ def create_agent() -> AgentExecutor:
         base_url=os.environ.get("LLM_BASE_URL", "https://api.siliconflow.cn/v1"),
         api_key=os.environ.get("LLM_API_KEY"),
     )
-    tools = [DuckDuckGoSearchRun(), calculator]
+    tools = [TavilySearchResults(max_results=3), calculator]
 
     prompt = ChatPromptTemplate.from_messages([
         ("system", "You are a helpful AI assistant with search and calculation capabilities. Answer in the same language as the user."),
