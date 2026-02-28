@@ -30,6 +30,8 @@ def _safe_eval(node: ast.expr) -> float:
 @tool
 def calculator(expression: str) -> str:
     """Safely evaluate a basic math expression (e.g. '2 + 3 * 4'). Supports +, -, *, /, **."""
+    if len(expression) > 200:
+        return "Error: expression too long (max 200 characters)"
     try:
         tree = ast.parse(expression, mode="eval")
         result = _safe_eval(tree.body)
