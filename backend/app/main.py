@@ -1,3 +1,4 @@
+import asyncio
 import json
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -27,8 +28,9 @@ def health():
 @app.post("/chat/stream")
 async def chat_stream(request: ChatRequest):
     agent = create_agent()
+    queue: asyncio.Queue[str | None] = asyncio.Queue()
 
-    async def generate():
+    async def run_agent() -> None:
         try:
             async for event in agent.astream_events(
                 {"input": request.message},
@@ -38,13 +40,29 @@ async def chat_stream(request: ChatRequest):
                 if kind == "on_chat_model_stream":
                     chunk = event["data"]["chunk"].content
                     if chunk:
-                        yield f"data: {json.dumps({'type': 'token', 'content': chunk})}\n\n"
+                        await queue.put(json.dumps({"type": "token", "content": chunk}))
                 elif kind == "on_tool_start":
                     tool_name = event["name"]
-                    yield f"data: {json.dumps({'type': 'tool_start', 'content': f'Using tool: {tool_name}'})}\n\n"
+                    await queue.put(json.dumps({"type": "tool_start", "content": f"Using tool: {tool_name}"}))
         except Exception as e:
-            yield f"data: {json.dumps({'type': 'error', 'content': str(e)})}\n\n"
+            await queue.put(json.dumps({"type": "error", "content": str(e)}))
         finally:
-            yield f"data: {json.dumps({'type': 'done'})}\n\n"
+            await queue.put(None)  # 结束信号
+
+    async def generate():
+        task = asyncio.create_task(run_agent())
+        try:
+            while True:
+                try:
+                    item = await asyncio.wait_for(queue.get(), timeout=15.0)
+                    if item is None:
+                        yield f"data: {json.dumps({'type': 'done'})}\n\n"
+                        break
+                    yield f"data: {item}\n\n"
+                except asyncio.TimeoutError:
+                    # 每 15 秒发送心跳，防止连接超时
+                    yield ": keep-alive\n\n"
+        finally:
+            await task
 
     return StreamingResponse(generate(), media_type="text/event-stream")
